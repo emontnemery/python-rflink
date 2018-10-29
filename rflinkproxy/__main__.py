@@ -36,6 +36,7 @@ from rflink.parser import (
     valid_packet
 )
 from rflink.protocol import RflinkProtocol
+from rflink.protocol import log as rflink_protocol_log
 
 log = logging.getLogger(__name__)
 
@@ -255,6 +256,18 @@ class RFLinkProxy:
         log.info('Connected to Rflink')
 
 
+class SpamFilter(logging.Filter):
+    """Filter out spammy prints."""
+
+    def filter(self, record):
+        """Filter out spammy prints."""
+        return not (record.name == 'rflink.protocol' and
+            record.getMessage().startswith((
+                'received data:',
+                'dropping invalid data',
+            )))
+
+
 def main(argv=sys.argv[1:], loop=None):
     """Parse argument and setup main program loop."""
     args = docopt(__doc__, argv=argv,
@@ -266,6 +279,8 @@ def main(argv=sys.argv[1:], loop=None):
     if args['-v'] == 2:
         level = logging.DEBUG
     logging.basicConfig(level=level)
+
+    rflink_protocol_log.addFilter(SpamFilter())
 
     if not loop:
         loop = asyncio.get_event_loop()
